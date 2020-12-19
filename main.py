@@ -10,9 +10,11 @@ def getDBs():
 def getUrls(db, domain):
 
     cursor = db.cursor()
-    query = f"SELECT url.hostname, url.domain, url.headers " \
-            f"FROM ORM.url as url, ORM.domain as domain " \
-            f"WHERE domain.id = url.domain AND domain.name = '{domain}'"
+    query = f"SELECT DISTINCT domain.name, url.domain, url.id, url.headers, url.url "\
+            f"FROM domain, url, domain_url "\
+            f"WHERE domain.id = domain_url.domain_id "\
+            f"AND domain_url.url_id = url.id "\
+            f"AND domain.name = '{domain}'"
     cursor.execute(query)
     query_result = cursor.fetchall()
     cursor.close()
@@ -23,7 +25,7 @@ if __name__ == '__main__':
 
     db_orm, db_mod = getDBs()
 
-    result = getUrls(db_orm, "google.com")
+    result = getUrls(db_orm, "youtube.com")
 
     for row in result:
         print(row)
