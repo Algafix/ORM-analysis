@@ -33,6 +33,24 @@ def get_urls(db, domain):
     return results
 
 
+def get_total_cookies(db, domain):
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+    query = f"SELECT COUNT(DISTINCT url.id) AS total_cookies " \
+            f"FROM domain, url, domain_url " \
+            f"WHERE domain.id = domain_url.domain_id " \
+            f"AND domain_url.url_id = url.id " \
+            f"AND domain.name = '{domain}' " \
+            f"AND url.headers LIKE '%set-cookie%'"
+
+    cursor.execute(query)
+    results = cursor.fetchall()
+    print(results)
+    total_cookies = int(results[0]["total_cookies"])
+    cursor.close()
+
+    return total_cookies
+
+
 def get_clicked(db, domain):
     cursor = db.cursor(MySQLdb.cursors.DictCursor)
     query = f"SELECT clicked " \
@@ -63,6 +81,9 @@ def get_total_clicked(db):
 if __name__ == '__main__':
 
     db_orm, db_mod = get_dbs()
+
+    number_of_cookies = get_total_cookies(db_orm, "reddit.com")
+    print(number_of_cookies) #4
 
     clicked = get_clicked(db_mod, "youtube.com")
     print(clicked)
