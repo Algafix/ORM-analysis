@@ -1,4 +1,5 @@
 import MySQLdb
+import ast
 
 
 def get_dbs():
@@ -9,21 +10,16 @@ def get_dbs():
     return db_orm, db_mod
 
 
-def get_urls(db, domain):
-    """
-    Get a list of dictionary for all the urls request responded by a domain. If the list is empty, something went wrong
-    accessing the domain.
-    :param db: db instance to use
-    :param domain: String with the name of the domain.
-    :return: list of dictionaries with requests.
-    """
+def get_headers_cookies(db, domain):
 
     cursor = db.cursor(MySQLdb.cursors.DictCursor)
-    query = f"SELECT DISTINCT domain.name, url.domain, url.id, url.headers, url.url "\
-            f"FROM domain, url, domain_url "\
-            f"WHERE domain.id = domain_url.domain_id "\
-            f"AND domain_url.url_id = url.id "\
-            f"AND domain.name = '{domain}'"
+    query = f"SELECT DISTINCT domain.name, url.id, url.headers, url.url " \
+            f"FROM domain, url, domain_url " \
+            f"WHERE domain.id = domain_url.domain_id " \
+            f"AND domain_url.url_id = url.id " \
+            f"AND domain.name = '{domain}' " \
+            f"AND url.headers LIKE '%\\'set-cookie\\':%'"
+
     cursor.execute(query)
 
     results = []
@@ -57,18 +53,24 @@ def get_count_urls(db, domain):
 
 
 def get_count_cookies(db, domain):
-    cursor = db.cursor(MySQLdb.cursors.DictCursor)
-    query = f"SELECT COUNT(DISTINCT url.id) AS total_cookies " \
-            f"FROM domain, url, domain_url " \
-            f"WHERE domain.id = domain_url.domain_id " \
-            f"AND domain_url.url_id = url.id " \
-            f"AND domain.name = '{domain}' " \
-            f"AND url.headers LIKE '%set-cookie%'"
 
-    cursor.execute(query)
-    results = cursor.fetchall()
-    total_cookies = int(results[0]["total_cookies"])
-    cursor.close()
+    total_cookies = 0
+
+    try:
+        requests = get_headers_cookies(db, domain)
+    except UnicodeDecodeError:
+        print("MySQLdb doing strange things with unicode")
+    else:
+        for request in requests:
+            header_dict = ast.literal_eval(request["headers"])
+            if 'set-cookie' in header_dict:
+                cookies_list = str.split(header_dict["set-cookie"], "\n")
+                total_cookies += len(cookies_list)
+            elif 'Set-Cookie' in header_dict:
+                cookies_list = str.split(header_dict["Set-Cookie"], "\n")
+                total_cookies += len(cookies_list)
+            else:
+                print(header_dict)
 
     return total_cookies
 

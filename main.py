@@ -14,6 +14,7 @@ if __name__ == '__main__':
     csv_header = ["domain_ID", "domain_name", "cookies_default", "cookies_accepted", "clicked"]
 
     db_orm, db_mod = db_manager.get_dbs()
+
     domains = db_manager.get_domains(db_orm)
 
     with open("cookies_report.csv", 'w', newline='') as csv_file:
@@ -21,6 +22,7 @@ if __name__ == '__main__':
         csv_writer.writerow(csv_header)
 
         for domain in domains:
+            print(f"ID: {domain['id']}\t{domain['name']}")
 
             urls_default = db_manager.get_count_urls(db_orm, domain["name"])
             urls_accepted = db_manager.get_count_urls(db_mod, domain["name"])
