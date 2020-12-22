@@ -33,7 +33,7 @@ blank_theme <- theme_minimal()+
     text = element_text(size=30)
   )
 
-domains_clicked$label_ypos = 10 + cumsum(domains_clicked$prop)- domains_clicked$prop/2
+domains_clicked$label_ypos = 20 + cumsum(domains_clicked$prop)- domains_clicked$prop/2
 
 bp <- ggplot(domains_clicked, aes(x="", y=prop, fill=clicked))+
   geom_bar(width = 1, stat = "identity")
