@@ -35,6 +35,30 @@ def get_headers_cookies(db, domain):
 
     return results
 
+def get_all_headers(db, domain):
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+    query = f"SELECT DISTINCT domain.name, url.id, url.headers, url.url " \
+            f"FROM domain, url, domain_url " \
+            f"WHERE domain.id = domain_url.domain_id " \
+            f"AND domain_url.url_id = url.id " \
+            f"AND domain.name = '{domain}'"
+
+    cursor.execute(query)
+
+    results = []
+    for row in cursor.fetchall():
+        result = {}
+        for key in row.keys():
+            result[key] = row[key]
+            if row[key] == "NULL":
+                result[key] = None
+        results.append(result)
+
+    cursor.close()
+
+    return results
+
 
 def get_count_urls(db, domain):
     cursor = db.cursor(MySQLdb.cursors.DictCursor)
@@ -57,20 +81,23 @@ def get_count_cookies(db, domain):
     total_cookies = 0
 
     try:
-        requests = get_headers_cookies(db, domain)
+        requests = get_all_headers(db, domain)
     except UnicodeDecodeError:
         print("MySQLdb doing strange things with unicode")
     else:
         for request in requests:
-            header_dict = ast.literal_eval(request["headers"])
-            if 'set-cookie' in header_dict:
-                cookies_list = str.split(header_dict["set-cookie"], "\n")
-                total_cookies += len(cookies_list)
-            elif 'Set-Cookie' in header_dict:
-                cookies_list = str.split(header_dict["Set-Cookie"], "\n")
-                total_cookies += len(cookies_list)
-            else:
-                print(header_dict)
+            try:
+                if "set-cookie" not in request["headers"] and "Set-Cookie" not in request["headers"]:
+                    continue
+                header_dict = ast.literal_eval(request["headers"])
+                if 'set-cookie' in header_dict:
+                    cookies_list = str.split(header_dict["set-cookie"], "\n")
+                    total_cookies += len(cookies_list)
+                elif 'Set-Cookie' in header_dict:
+                    cookies_list = str.split(header_dict["Set-Cookie"], "\n")
+                    total_cookies += len(cookies_list)
+            except:
+                print("Unhandled Error")
 
     return total_cookies
 
